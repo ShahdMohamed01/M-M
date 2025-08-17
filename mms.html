@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Friends — Photo Tribute</title>
+  <style>
+    :root{
+      --bg:#fff7fb;
+      --card:#ffffff;
+      --accent:#ff6b8a;
+      --muted:#6b7280;
+      --glass: rgba(255,255,255,0.6);
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; background:linear-gradient(135deg,#fff7fb 0%, #f3f8ff 100%); color:#222}
+    .container{max-width:980px;margin:48px auto;padding:24px}
+    .card{background:var(--card);border-radius:18px;padding:22px;box-shadow:0 8px 30px rgba(17,24,39,0.08);}
+
+    header{display:flex;gap:16px;align-items:center}
+    .logo{width:72px;height:72px;border-radius:14px;background:linear-gradient(135deg,#ffd1dc,#ffd9a8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#6b0f2b}
+    h1{margin:0;font-size:1.6rem}
+    p.lead{margin:6px 0 0;color:var(--muted)}
+
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .btn{background:var(--accent);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(255,107,138,0.18);}
+    .btn.secondary{background:transparent;color:var(--accent);border:1px solid rgba(255,107,138,0.2)}
+
+    .message{margin-top:14px;background:linear-gradient(90deg,rgba(255,107,138,0.06),rgba(123,97,255,0.04));padding:12px;border-radius:10px;color:#3b3052}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:20px}
+    .photo{position:relative;border-radius:12px;overflow:hidden;cursor:pointer;opacity:0;transform:scale(0.8);transition:opacity .8s ease, transform .8s ease;}
+    .photo.show{opacity:1;transform:scale(1);}
+    .photo:hover{transform:scale(1.05);box-shadow:0 18px 40px rgba(17,24,39,0.12)}
+    .photo img{display:block;width:100%;height:220px;object-fit:cover}
+    .caption{position:absolute;left:12px;bottom:12px;padding:8px 10px;background:linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.45));color:#fff;border-radius:8px;font-weight:600}
+
+    /* Lightbox */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;padding:20px}
+    .overlay.show{display:flex}
+    .lightbox{max-width:1100px;width:100%;max-height:90vh;background:var(--glass);backdrop-filter:blur(6px);border-radius:14px;padding:16px;display:flex;gap:12px;align-items:center}
+    .lightbox img{max-width:calc(100% - 260px);max-height:78vh;object-fit:contain;border-radius:10px}
+    .side{width:240px}
+    .side h3{margin:0 0 6px}
+    .side p{margin:0;color:var(--muted)}
+    .navs{display:flex;gap:8px;margin-top:12px}
+    .small{width:48px;height:48px;border-radius:8px;overflow:hidden}
+    .small img{width:100%;height:100%;object-fit:cover}
+
+    footer{margin-top:18px;color:var(--muted);font-size:.9rem;text-align:center}
+
+    @media (max-width:720px){
+      .lightbox{flex-direction:column}
+      .lightbox img{max-width:100%;}
+      .side{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <header>
+        <div class="logo">♥︎</div>
+        <div>
+          <h1>M&M'S — A Little Thank You</h1>
+          <p class="lead">Made with love ✨</p>
+        </div>
+      </header>
+
+      <div class="controls">
+        <button class="btn" id="load">Load Photos</button>
+        <button class="btn secondary" id="show">Show Photos</button>
+      </div>
+
+      <div class="message">
+        <strong>Message:</strong>
+        <div style="margin-top:8px">To my sisters M&M — thank you for the years, laughter, and endless support. You made the good times better and the hard times easier. Love you ❤️</div>
+      </div>
+
+      <div class="grid" id="gallery"></div>
+
+      
+    </div>
+  </div>
+
+  <!-- Lightbox overlay -->
+  <div class="overlay" id="overlay" role="dialog" aria-hidden="true">
+    <div class="lightbox" role="document">
+      <img id="lightImg" src="" alt="Friend photo">
+      <div class="side">
+        <h3 id="lightTitle">Thank you, sisters</h3>
+        <p id="lightText">Years together, forever in my heart.</p>
+        <div class="navs">
+          <button class="btn secondary" id="prev">◀ Prev</button>
+          <button class="btn" id="next">Next ▶</button>
+          <button class="btn secondary" id="close">Close ✕</button>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap" id="thumbs"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const images = [
+      "images/MMS/WhatsApp Image 2025-08-18 at 01.19.29_a427abbb.jpg",
+      "images/MMS/WhatsApp Image 2025-08-18 at 01.24.05_ae5b3ca3.jpg",
+      "images/MMS/WhatsApp Image 2025-08-18 at 01.24.06_6ec70193.jpg",
+      "images/MMS/WhatsApp Image 2025-08-18 at 01.24.06_89a36a31.jpg"
+    ];
+
+    const gallery = document.getElementById('gallery');
+    const loadBtn = document.getElementById('load');
+    const showBtn = document.getElementById('show');
+    const overlay = document.getElementById('overlay');
+    const lightImg = document.getElementById('lightImg');
+    const thumbs = document.getElementById('thumbs');
+    const closeBtn = document.getElementById('close');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+
+    let current = 0;
+
+    function renderGridSequential(){
+      gallery.innerHTML = '';
+      images.forEach((src,i)=>{
+        const div = document.createElement('div');
+        div.className = 'photo';
+        div.innerHTML = `<img src="${src}" alt="friend ${i+1}" loading="lazy"><div </div>`;
+        div.addEventListener('click', ()=>openLightbox(i));
+        gallery.appendChild(div);
+
+        // delay appearance
+        setTimeout(()=> div.classList.add('show'), i * 1500);
+      });
+    }
+
+    function openLightbox(idx){
+      current = idx;
+      lightImg.src = images[current];
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+      renderThumbs();
+    }
+
+    function closeLightbox(){
+      overlay.classList.remove('show');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function renderThumbs(){
+      thumbs.innerHTML = '';
+      images.forEach((src,i)=>{
+        const s = document.createElement('div');
+        s.className='small';
+        s.innerHTML = `<img src="${src}" alt="thumb ${i+1}">`;
+        s.addEventListener('click', ()=>{ current = i; lightImg.src = images[current]; });
+        thumbs.appendChild(s);
+      });
+    }
+
+    prevBtn.addEventListener('click', ()=>{ current = (current - 1 + images.length) % images.length; lightImg.src = images[current]; });
+    nextBtn.addEventListener('click', ()=>{ current = (current + 1) % images.length; lightImg.src = images[current]; });
+    closeBtn.addEventListener('click', closeLightbox);
+    overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeLightbox(); });
+
+    loadBtn.addEventListener('click', ()=>{ renderGridSequential(); });
+    showBtn.addEventListener('click', ()=>{ if(images.length) openLightbox(0); });
+
+    document.addEventListener('keydown', (e)=>{ 
+      if(overlay.classList.contains('show')){
+        if(e.key==='ArrowRight') nextBtn.click(); 
+        if(e.key==='ArrowLeft') prevBtn.click(); 
+        if(e.key==='Escape') closeBtn.click(); 
+      } 
+    });
+  </script>
+</body>
+</html>
